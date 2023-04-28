@@ -1,91 +1,65 @@
 #!/usr/bin/python3
-'''
-   This module handles all default RestFul API actions for Amenity objects.
-'''
-from flask import jsonify, abort, request
-from api.v1.views import app_views
+"""This module contains the view for Amenity objects"""
+from flask import abort, jsonify, request
+from models.amenity import Amenity
 from models import storage
-from models import Amenity
+from api.v1.views import app_views
+from datetime import datetime
+
+objects = storage.all(Amenity)
+clskeyprefix = 'Amenity.'
+
+@app_views.route('/amenities', strict_slashes=False)
+def amenities():
+    """retrieves the list of all Amenity objects"""
+    return jsonify([obj.to_dict() for obj in objects.values()])
 
 
-@app_views.route('/amenities', methods=['GET'],
-                 strict_slashes=False)
-def all_amenities_by_state():
-    '''
-       Retrieves all Amenity objects from storage
-    '''
-    amenities = storage.all("Amenity")
-    amenities_list = []
-    for k, v in amenities.items():
-        amenities_list.append(v.to_dict())
-
-    return jsonify(amenities_list)
-
-
-@app_views.route('/amenities/<amenity_id>', methods=['GET'],
-                 strict_slashes=False)
-def amenity_by_id(amenity_id):
-    '''
-       Retrieves a specified Amenity object from storage
-    '''
-    amenity = storage.get("Amenity", amenity_id)
+@app_views.route('/amenities/<amenity_id>', strict_slashes=False)
+def get_amenity_by_id(amenity_id):
+    """retrieves a Amenity object using it's id"""
+    amenity = objects.get(clskeyprefix + amenity_id)
     if not amenity:
         abort(404)
-    format_amenity = amenity.to_dict()
-    return jsonify(format_amenity)
+    return jsonify(amenity.to_dict())
 
 
 @app_views.route('/amenities/<amenity_id>', methods=['DELETE'],
                  strict_slashes=False)
-def delete_amenity(amenity_id):
-    '''
-       Deletes a specified Amenity object from storage
-    '''
-    amenity = storage.get("Amenity", amenity_id)
-    if not amenity:
+def delete_amenity_by_id(amenity_id):
+    """deletes a Amenity object"""
+    obj = objects.get(clskeyprefix + amenity_id)
+    if not obj:
         abort(404)
-    storage.delete(amenity)
-    storage.save()
+    storage.delete(obj)
     return jsonify({}), 200
-
 
 @app_views.route('/amenities', methods=['POST'],
                  strict_slashes=False)
 def create_amenity():
-    '''
-       Creates a new Amenity object and saves it to storage
-    '''
+    """creates a Amenity object"""
     if not request.json:
-        return jsonify({"error": "Not a JSON"}), 400
-    else:
-        amenity_dict = request.get_json()
-        if "name" in amenity_dict:
-            amenity_name = amenity_dict["name"]
-            amenity = Amenity(name=amenity_name)
-            for k, v in amenity_dict.items():
-                setattr(amenity, k, v)
-            amenity.save()
-            return jsonify(amenity.to_dict()), 201
-        else:
-            return jsonify({"error": "Missing name"}), 400
-
+        abort(400, 'Not a JSON')
+    if 'name' not in request.json:
+        abort(400, 'Missing name')
+    obj = Amenity(**request.json)
+    storage.new(obj)
+    storage.save()
+    return jsonify(obj.to_dict()), 201
 
 @app_views.route('/amenities/<amenity_id>', methods=['PUT'],
                  strict_slashes=False)
 def update_amenity(amenity_id):
-    '''
-       Updates an existing Amenity object and saves it to storage
-    '''
-    amenity = storage.get("Amenity", amenity_id)
-    if not amenity:
+    """updates a Amenity object"""
+    obj = objects.get(clskeyprefix + amenity_id)
+    if not obj:
         abort(404)
     if not request.json:
-        return jsonify({"error": "Not a JSON"}), 400
-
-    req = request.get_json()
-    for k, v in req.items():
-        if k != "id" or k != "created_at" or k != "updated_at":
-            setattr(amenity, k, v)
-    amenity.save()
-
-    return jsonify(amenity.to_dict()), 200
+        abort(400, 'Not a JSON')
+    for key, value in request.json.items():
+        if (key in obj.__dict__ and key not in
+        ['id', 'created_at', 'updated_at']):
+            setattr(obj, key, value)
+    setattr(obj, 'updated_at', datetime.utcnow())
+    storage.save()
+    return jsonify(obj.to_dict()), 200
