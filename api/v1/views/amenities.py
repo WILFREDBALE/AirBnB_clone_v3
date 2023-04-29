@@ -1,24 +1,23 @@
 #!/usr/bin/python3
 """This module contains the view for Amenity objects"""
-from flask import abort, jsonify, request
+from flask import jsonify, abort, request
+from api.v1.views import app_views
 from models.amenity import Amenity
 from models import storage
-from api.v1.views import app_views
 from datetime import datetime
 
-objects = storage.all(Amenity)
-clskeyprefix = 'Amenity.'
 
 @app_views.route('/amenities', strict_slashes=False)
 def amenities():
     """retrieves the list of all Amenity objects"""
+    objects = storage.all(Amenity)
     return jsonify([obj.to_dict() for obj in objects.values()])
 
 
 @app_views.route('/amenities/<amenity_id>', strict_slashes=False)
 def get_amenity_by_id(amenity_id):
     """retrieves a Amenity object using it's id"""
-    amenity = objects.get(clskeyprefix + amenity_id)
+    amenity = storage.get(Amenity, amenity_id)
     if not amenity:
         abort(404)
     return jsonify(amenity.to_dict())
