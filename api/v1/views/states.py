@@ -11,12 +11,15 @@ from models.state import State
 @app_views.route('/states', strict_slashes=False)
 def states():
     """retrieves the list of all State objects"""
-    states = storage.all(State)
-    return jsonify([obj.to_dict() for obj in states.values()])
+    all_states = storage.all(State).values()
+    list_states = []
+    for state in all_states:
+        list_states.append(state.to_dict())
+    return jsonify(list_states)
 
 
 @app_views.route("/states/<state_id>", methods=['GET'], strict_slashes=False)
-def get_state_by_id(state_id):
+def get_state(state_id):
     """retrieves a State object using it's id"""
     state = storage.get(State, state_id)
     if not state:
@@ -26,7 +29,7 @@ def get_state_by_id(state_id):
 
 @app_views.route("/states/<state_id>", methods=['DELETE'],
                  strict_slashes=False)
-def delete_state_by_id(state_id):
+def delete_state(state_id):
     """deletes a State object"""
     state = storage.get(State, state_id)
     if not state:
@@ -53,14 +56,14 @@ def create_state():
                  strict_slashes=False)
 def update_state(state_id):
     """updates a State object"""
-    obj = storage.get(State, state_id)
-    if not obj:
+    state = storage.get(State, state_id)
+    if not state:
         abort(404)
     data = request.get_json(silent=True)
     if not data:
         abort(400, 'Not a JSON')
     for key, value in data.items():
         if key not in ['id', 'created_at', 'updated_at']:
-            setattr(obj, key, value)
-    obj.save()
+            setattr(state, key, value)
+    storage.save()
     return jsonify(obj.to_dict())
