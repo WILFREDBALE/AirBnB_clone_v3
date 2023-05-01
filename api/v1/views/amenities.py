@@ -4,7 +4,6 @@ from flask import jsonify, abort, request
 from api.v1.views import app_views
 from models.amenity import Amenity
 from models import storage
-from datetime import datetime
 
 
 @app_views.route('/amenities', strict_slashes=False)
@@ -42,7 +41,7 @@ def create_amenity():
     data = request.get_json(silent=True)
     if not request.json:
         abort(400, 'Not a JSON')
-    if 'name' not in request.json:
+    if 'name' not in data:
         abort(400, 'Missing name')
     obj = Amenity(**request.json)
     obj.save()
@@ -54,14 +53,13 @@ def create_amenity():
 def update_amenity(amenity_id):
     """updates a Amenity object"""
     obj = storage.get(Amenity, amenity_id)
+    data = request.get_json(silent=True)
     if not obj:
         abort(404)
     if not request.json:
         abort(400, 'Not a JSON')
-    for key, value in request.json.items():
-        if (key in obj.__dict__ and key not in
-        ['id', 'created_at', 'updated_at']):
+    for key, value in data.items():
+        if (key not in ['id', 'created_at', 'updated_at']):
             setattr(obj, key, value)
-    setattr(obj, 'updated_at', datetime.utcnow())
     obj.save()
     return jsonify(obj.to_dict()), 200
