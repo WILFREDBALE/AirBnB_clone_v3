@@ -13,7 +13,8 @@ def amenities():
     return jsonify([obj.to_dict() for obj in objects.values()])
 
 
-@app_views.route('/amenities/<amenity_id>', strict_slashes=False)
+@app_views.route('/amenities/<amenity_id>/', methods=['GET'],
+        strict_slashes=False)
 def get_amenity_by_id(amenity_id):
     """retrieves a Amenity object using it's id"""
     amenity = storage.get(Amenity, amenity_id)
@@ -26,10 +27,10 @@ def get_amenity_by_id(amenity_id):
                  strict_slashes=False)
 def delete_amenity_by_id(amenity_id):
     """deletes a Amenity object"""
-    obj = storage.get(Amenity, amenity_id)
-    if not obj:
+    amenity = storage.get(Amenity, amenity_id)
+    if not amenity:
         abort(404)
-        obj.delete()
+        storage.delete()
     storage.save()
     return jsonify({}), 200
 
@@ -61,5 +62,5 @@ def update_amenity(amenity_id):
     for key, value in data.items():
         if (key not in ['id', 'created_at', 'updated_at']):
             setattr(obj, key, value)
-    obj.save()
+    storage.save()
     return jsonify(obj.to_dict()), 200
