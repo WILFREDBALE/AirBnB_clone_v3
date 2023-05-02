@@ -68,11 +68,11 @@ class BaseModel:
         new_dict["__class__"] = self.__class__.__name__
         if "_sa_instance_state" in new_dict:
             del new_dict["_sa_instance_state"]
-        if models.storage_t == "db":
-            # if "_password" in new_dict:
-            #     del new_dict["_password"]
-            new_dict.pop("_password", None)
-        return new_dict
+        if cp_dct['__class__'] is "User" and not save_to_disk:
+            # if "_password" in cp_dict:
+            #     del cp_dict["_password"]
+            cp_dict.pop("_password", None)
+        return cp_dict
 
     def delete(self):
         """delete the current instance from the storage"""
